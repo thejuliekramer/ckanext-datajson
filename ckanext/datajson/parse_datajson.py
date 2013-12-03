@@ -6,7 +6,7 @@ def parse_datajson_entry(datajson, package, defaults):
 	package["title"] = datajson.get("title", defaults.get("Title"))
 	package["notes"] = datajson.get("description", defaults.get("Notes"))
 	package["tags"] = [ { "name": munge_title_to_name(t) } for t in
-		datajson.get("keyword", defaults.get("Tags", "")).split(",") if t.strip() != ""]
+		datajson.get("keyword", defaults.get("Tags", "")) if t.strip() != ""]
 	package["groups"] = [ { "name": g } for g in 
 		defaults.get("Groups", [])] # the complexity of permissions makes this useless, CKAN seems to ignore
 	extra(package, "Group Name", defaults.get("Group Name")) # i.e. dataset grouping string
