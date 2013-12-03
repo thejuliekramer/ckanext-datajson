@@ -1,5 +1,6 @@
 from ckan.lib.base import c
 from ckan import model
+from ckan import plugins as p
 from ckan.model import Session, Package
 from ckan.logic import ValidationError, NotFound, get_action
 from ckan.lib.munge import munge_title_to_name
@@ -18,6 +19,7 @@ class DatasetHarvesterBase(HarvesterBase):
     '''
     A Harvester for datasets.
     '''
+    _user_name = None
 
     # SUBCLASSES MUST IMPLEMENT
     #HARVESTER_VERSION = "1.0"
@@ -63,13 +65,20 @@ class DatasetHarvesterBase(HarvesterBase):
 
         return ret
 
+    def _get_user_name(self):
+        if not self._user_name:
+            user = p.toolkit.get_action('get_site_user')({'model': model, 'ignore_auth': True}, {})
+            self._user_name = user['name']
+
+        return self._user_name
+
     def context(self):
         # Reusing the dict across calls to action methods can be dangerous, so
         # create a new dict every time we need it.
         # Setting validate to False is critical for getting the harvester plugin
         # to set extra fields on the package during indexing (see ckanext/harvest/plugin.py
         # line 99, https://github.com/okfn/ckanext-harvest/blob/master/ckanext/harvest/plugin.py#L99).
-        return { "user": "harvest", "ignore_auth": True, "validate": False }
+        return { "user": self._get_user_name(), "ignore_auth": True }
         
     # SUBCLASSES MUST IMPLEMENT
     def load_remote_catalog(self, harvest_job):
