@@ -203,36 +203,76 @@ class DatasetHarvesterBase(HarvesterBase):
             owner_org = source_dataset.owner_org
         
         # Assemble basic information about the dataset.
+        MAPPING = {
+            "title": "title",
+            "description": "notes",
+            "keyword": "tags",
+            "modified": "extras__metadata-date",
+            "publisher": "extras__publisher",
+            "contactPoint": "extras__maintainer",
+            "mbox": "extras__maintainer_email",
+            "identifier": "extras__source_identifier",
+            "accessLevel": "extras__accessLevel",
+
+            "bureauCode": "extras__bureauCode",
+            "programCode": "extras__programCode",
+            "accessLevelComment": "extras__accessLevelComment",
+            #"accessURL": "accessURL",
+            "webService": "extras__webService", # !res_url
+            #"format": "format",
+            "license": "extras__license", # !license_id 
+            "spatial": "extras__spatial", # Geometry not valid GeoJSON, not indexing
+            "temporal": "extras__temporal",
+
+            "theme": "extras__theme",
+            "dataDictionary": "extras__dataDictionary", # !data_dict
+            "dataQuality": "extras__dataQuality",
+            #"distribution": "distribution",
+            "accrualPeriodicity":"extras__accrualPeriodicity",
+            "landingPage": "extras__landingPage",
+            "language": "extras__language",
+            "primaryITInvestmentUII": "extras__primaryITInvestmentUII", # !PrimaryITInvestmentUII
+            "references": "extras__references",
+            "issued": "extras__issued",
+            "systemOfRecords": "extras__systemOfRecords",
+        }
+
         pkg = {
             "name": self.make_package_name(dataset["title"], harvest_object.guid, False),
             "state": "active", # in case was previously deleted
             "owner_org": owner_org,
-            "extras": [{
-                "key": "source_url",
-                "value": harvest_object.source.url,
-                },
+            "extras": [
                 {
-                "key": "source_title",
-                "value": harvest_object.source.title,
+                    "key": "resource-type",
+                    "value": "Dataset",
                 },
-                {
-                "key": "source_identifier",
-                "value": dataset["identifier"],
-                },
-                {
-                "key": "source_hash",
-                "value": self.make_upstream_content_hash(dataset, harvest_object.source),
-                },
-                {
-                "key": "harvest_harvester_version",
-                "value": self.HARVESTER_VERSION,
-                },
-                {
-                "key": "harvest_last_updated",
-                "value": datetime.datetime.utcnow().isoformat(),
-                }]
+            ]
         }
-        
+
+        extras = pkg["extras"]
+        unmapped = []
+
+        for key, value in dataset.iteritems():
+            new_key = MAPPING.get(key)
+            if not new_key:
+                unmapped.append(key)
+                continue
+            if not value:
+                continue
+
+            if new_key.startswith('extras__'):
+                extras.append({"key": new_key[8:], "value": value})
+            else:
+                pkg[new_key] = value
+
+        # pick a fix number of unmapped entries and put into extra
+        if unmapped:
+            unmapped.sort()
+            del unmapped[100:]
+            for key in unmapped:
+                value = dataset.get(key, "")
+                if value is not None: extras.append({"key": key, "value": value})
+
         # Set specific information about the dataset.
         self.set_dataset_info(pkg, dataset, dataset_defaults)
     
@@ -288,7 +328,7 @@ class DatasetHarvesterBase(HarvesterBase):
         
     def make_upstream_content_hash(self, datasetdict, harvest_source):
         return hashlib.sha1(json.dumps(datasetdict, sort_keys=True)
-        	+ "|" + harvest_source.config + "|" + self.HARVESTER_VERSION).hexdigest()
+            + "|" + harvest_source.config + "|" + self.HARVESTER_VERSION).hexdigest()
         
     def find_extra(self, pkg, key):
         for extra in pkg["extras"]:
