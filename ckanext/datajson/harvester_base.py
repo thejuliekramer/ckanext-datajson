@@ -211,7 +211,7 @@ class DatasetHarvesterBase(HarvesterBase):
             "publisher": "extras__publisher", # !owner_org
             "contactPoint": "extras__maintainer",
             "mbox": "extras__maintainer_email",
-            "identifier": "extras__source_identifier", # !id
+            "identifier": "extras__identifier", # !id
             "accessLevel": "extras__accessLevel",
 
             "bureauCode": "extras__bureauCode",
