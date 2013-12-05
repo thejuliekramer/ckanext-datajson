@@ -207,11 +207,11 @@ class DatasetHarvesterBase(HarvesterBase):
             "title": "title",
             "description": "notes",
             "keyword": "tags",
-            "modified": "extras__metadata-date",
-            "publisher": "extras__publisher",
+            "modified": "extras__metadata-date", # ! revision_timestamp
+            "publisher": "extras__publisher", # !owner_org
             "contactPoint": "extras__maintainer",
             "mbox": "extras__maintainer_email",
-            "identifier": "extras__source_identifier",
+            "identifier": "extras__source_identifier", # !id
             "accessLevel": "extras__accessLevel",
 
             "bureauCode": "extras__bureauCode",
