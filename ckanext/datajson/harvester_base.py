@@ -10,7 +10,9 @@ from ckanext.harvest.model import HarvestJob, HarvestObject, HarvestGatherError,
                                     HarvestObjectError
 from ckanext.harvest.harvesters.base import HarvesterBase
 
-import uuid, datetime, hashlib, urllib2, json, yaml
+import uuid, datetime, hashlib, urllib2, json, yaml, json, os
+
+from jsonschema import validate
 
 import logging
 log = logging.getLogger("harvester")
@@ -184,6 +186,16 @@ class DatasetHarvesterBase(HarvesterBase):
         # in 'dataset' and default values as configured in 'dataset_defaults'.
         raise Exception("Not implemented.")
 
+    # validate dataset against POD schema
+    # use a local copy of http://project-open-data.github.io/schema/1_0_final/single_entry.json
+    def _validate_dataset(self, dataset):
+        try:
+            json_file = open(os.path.join(os.path.dirname(__file__), 'pod_schema/single_entry.json'))
+            schema = json.load(json_file)
+            validate(dataset, schema)
+        except Exception as e:
+            return str(e)
+
     def import_stage(self, harvest_object):
         # The import stage actually creates the dataset.
         
@@ -194,6 +206,11 @@ class DatasetHarvesterBase(HarvesterBase):
 
         # Get the metadata that we stored in the HarvestObject's content field.
         dataset = json.loads(harvest_object.content)
+
+        validate_message = self._validate_dataset(dataset)
+        if validate_message is not None:
+            self._save_object_error(validate_message, harvest_object, 'Import')
+            return None
 
         # We need to get the owner organization (if any) from the harvest
         # source dataset

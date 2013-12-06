@@ -1,2 +1,4 @@
 pyyaml
 lepl
+
+-e git+https://github.com/Julian/jsonschema.git@master#egg=jsonschema
