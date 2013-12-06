@@ -110,7 +110,7 @@ class DatasetHarvesterBase(HarvesterBase):
             except:
                 # reference is broken
                 continue
-            sid = self.find_extra(pkg, "source_identifier")
+            sid = self.find_extra(pkg, "identifier")
             if sid:
                 existing_datasets[sid] = pkg
                     
