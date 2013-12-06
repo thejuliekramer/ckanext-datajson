@@ -194,7 +194,10 @@ class DatasetHarvesterBase(HarvesterBase):
             schema = json.load(json_file)
             validate(dataset, schema)
         except Exception as e:
-            return str(e)
+            id = "Identifier: " + dataset.get("identifier", "Unknown")
+            title = "Title: " + dataset.get("title", "Unknown")
+            error_message = "Error Message: " + str(e)
+            return id + " " + title + " " + error_message
 
     def import_stage(self, harvest_object):
         # The import stage actually creates the dataset.
