@@ -6,7 +6,6 @@ def parse_datajson_entry(datajson, package, defaults):
 	package["tags"] = [ { "name": munge_title_to_name(t) } for t in
 		package.get("tags", "") if t.strip() != ""]
 
-	package["resources"] = []
 	# if distribution is empty, assemble it with root level accessURL and format.
 	# but firstly it can be an ill-formated dict.
 	distribution = datajson.get("distribution", [])

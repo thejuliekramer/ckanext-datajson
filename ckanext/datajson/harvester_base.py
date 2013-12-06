@@ -254,10 +254,13 @@ class DatasetHarvesterBase(HarvesterBase):
             "systemOfRecords": "extras__systemOfRecords",
         }
 
+        SKIP = ["accessURL", "format", "distribution"] # will go into pkg["resources"]
+
         pkg = {
             "name": self.make_package_name(dataset["title"], harvest_object.guid, False),
             "state": "active", # in case was previously deleted
             "owner_org": owner_org,
+            "resources": [],
             "extras": [
                 {
                     "key": "resource-type",
@@ -270,6 +273,8 @@ class DatasetHarvesterBase(HarvesterBase):
         unmapped = []
 
         for key, value in dataset.iteritems():
+            if key in SKIP:
+                continue
             new_key = MAPPING.get(key)
             if not new_key:
                 unmapped.append(key)
