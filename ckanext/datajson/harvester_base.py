@@ -269,6 +269,10 @@ class DatasetHarvesterBase(HarvesterBase):
                     "key": "resource-type",
                     "value": "Dataset",
                 },
+                {
+                    "key": "source_hash",
+                    "value": self.make_upstream_content_hash(dataset, harvest_object.source),
+                },
             ]
         }
 
