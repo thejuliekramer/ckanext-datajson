@@ -21,7 +21,11 @@ class DataJsonHarvester(DatasetHarvesterBase):
             datasets = json.load(urllib2.urlopen(harvest_job.source.url))
         except:
             # try different encode
-            datasets = json.load(urllib2.urlopen(harvest_job.source.url), 'cp1252')
+            try:
+                datasets = json.load(urllib2.urlopen(harvest_job.source.url), 'cp1252')
+            except:
+                # remove BOM
+                datasets = json.loads(lstrip_bom(urllib2.urlopen(harvest_job.source.url).read()))
 
         # The first dataset should be for the data.json file itself. Check that
         # it is, and if so rewrite the dataset's title because Socrata exports
@@ -38,5 +42,12 @@ class DataJsonHarvester(DatasetHarvesterBase):
     def set_dataset_info(self, pkg, dataset, dataset_defaults):
         from parse_datajson import parse_datajson_entry
         parse_datajson_entry(dataset, pkg, dataset_defaults)
-    
 
+# helper function to remove BOM
+def lstrip_bom(str_):
+    from codecs import BOM_UTF8
+    bom = BOM_UTF8
+    if str_.startswith(bom):
+        return str_[len(bom):]
+    else:
+        return str_
