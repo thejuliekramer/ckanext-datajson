@@ -12,7 +12,7 @@ from ckanext.harvest.harvesters.base import HarvesterBase
 
 import uuid, datetime, hashlib, urllib2, json, yaml, json, os
 
-from jsonschema import validate
+from jsonschema.validators import Draft4Validator
 
 import logging
 log = logging.getLogger("harvester")
@@ -189,15 +189,20 @@ class DatasetHarvesterBase(HarvesterBase):
     # validate dataset against POD schema
     # use a local copy of http://project-open-data.github.io/schema/1_0_final/single_entry.json
     def _validate_dataset(self, dataset):
-        try:
-            json_file = open(os.path.join(os.path.dirname(__file__), 'pod_schema/single_entry.json'))
-            schema = json.load(json_file)
-            validate(dataset, schema)
-        except Exception as e:
+        json_file = open(os.path.join(os.path.dirname(__file__), 'pod_schema/single_entry.json'))
+        schema = json.load(json_file)
+        errors = Draft4Validator(schema).iter_errors(dataset)
+        msg = ";"
+        count = 0
+        for error in sorted(errors, key=str):
+            msg = msg + "####### Error Message ####### " + str(error) + "; "
+            count += 1
+        msg = msg.strip("; ")
+        if msg:
             id = "Identifier: " + dataset.get("identifier", "Unknown")
             title = "Title: " + dataset.get("title", "Unknown")
-            error_message = "Error Message: " + str(e)
-            return id + " " + title + " " + error_message
+            msg = id + "; " + title + "; " + str(count) + " Error(s) Found. " + msg
+        return msg
 
     def import_stage(self, harvest_object):
         # The import stage actually creates the dataset.
@@ -211,7 +216,7 @@ class DatasetHarvesterBase(HarvesterBase):
         dataset = json.loads(harvest_object.content)
 
         validate_message = self._validate_dataset(dataset)
-        if validate_message is not None:
+        if validate_message:
             self._save_object_error(validate_message, harvest_object, 'Import')
             return None
 
