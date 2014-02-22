@@ -234,8 +234,8 @@ class DatasetHarvesterBase(HarvesterBase):
             "keyword": "tags",
             "modified": "extras__metadata-date", # ! revision_timestamp
             "publisher": "extras__publisher", # !owner_org
-            "contactPoint": "extras__maintainer",
-            "mbox": "extras__maintainer_email",
+            "contactPoint": "maintainer",
+            "mbox": "maintainer_email",
             "identifier": "extras__identifier", # !id
             "accessLevel": "extras__accessLevel",
 
