@@ -15,6 +15,7 @@ def parse_datajson_entry(datajson, package, defaults):
 		d = {
 			"accessURL": datajson.get("accessURL", ""),
 			"format": datajson.get("format", ""),
+			"mimetype": datajson.get("format", ""),
 		}
 		distribution.append(d)
 	datajson["distribution"] = distribution
@@ -24,6 +25,7 @@ def parse_datajson_entry(datajson, package, defaults):
 			r = {
 				"url": d["accessURL"],
 				"format": d.get("format", ""),
+				"mimetype": d.get("format", ""),
 			}
 			package["resources"].append(r)
 	
