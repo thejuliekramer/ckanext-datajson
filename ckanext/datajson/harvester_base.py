@@ -232,7 +232,7 @@ class DatasetHarvesterBase(HarvesterBase):
             "title": "title",
             "description": "notes",
             "keyword": "tags",
-            "modified": "extras__metadata-date", # ! revision_timestamp
+            "modified": "extras__modified", # ! revision_timestamp
             "publisher": "extras__publisher", # !owner_org
             "contactPoint": "maintainer",
             "mbox": "maintainer_email",
