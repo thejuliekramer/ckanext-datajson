@@ -278,6 +278,14 @@ class DatasetHarvesterBase(HarvesterBase):
                     "key": "source_hash",
                     "value": self.make_upstream_content_hash(dataset, harvest_object.source),
                 },
+                {
+                    "key": "harvest_source_id",
+                    "value": harvest_object.harvest_source_id,
+                },
+                {
+                    "key": "harvest_object_id",
+                    "value": harvest_object.id,
+                },
             ]
         }
 
