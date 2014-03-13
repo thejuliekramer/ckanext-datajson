@@ -279,6 +279,10 @@ class DatasetHarvesterBase(HarvesterBase):
                     "value": self.make_upstream_content_hash(dataset, harvest_object.source),
                 },
                 {
+                    "key": "source_datajson_identifier",
+                    "value": True,
+                },
+                {
                     "key": "harvest_source_id",
                     "value": harvest_object.harvest_source_id,
                 },
