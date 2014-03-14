@@ -262,7 +262,7 @@ class DatasetHarvesterBase(HarvesterBase):
             "systemOfRecords": "extras__systemOfRecords",
         }
 
-        SKIP = ["accessURL", "format", "distribution"] # will go into pkg["resources"]
+        SKIP = ["accessURL", "webService", "format", "distribution"] # will go into pkg["resources"]
 
         pkg = {
             "name": self.make_package_name(dataset["title"], harvest_object.guid, False),
