@@ -13,7 +13,7 @@ def parse_datajson_entry(datajson, package, defaults):
 	if not isinstance(distribution, list): distribution = []
 
 	if not distribution:
-		for url in ("accessURL", "webService"):
+		for url in ("accessurl", "webservice"):
 			if datajson.get(url, "").strip():
 				d = {
 					url: datajson.get(url, ""),
@@ -25,9 +25,9 @@ def parse_datajson_entry(datajson, package, defaults):
 	datajson["distribution"] = distribution
 
 	for d in datajson.get("distribution", []):
-		if d.get("accessURL", "").strip() != "" or d.get("webService", "").strip() != "":
+		if d.get("accessurl", "").strip() != "" or d.get("webservice", "").strip() != "":
 			r = {
-				"url": d["accessURL"] if d.get("accessURL", "").strip() != "" else d["webService"],
+				"url": d["accessurl"] if d.get("accessurl", "").strip() != "" else d["webservice"],
 				"format": d.get("format", ""),
 				"mimetype": d.get("format", ""),
 			}

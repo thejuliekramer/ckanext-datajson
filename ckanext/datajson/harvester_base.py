@@ -215,7 +215,64 @@ class DatasetHarvesterBase(HarvesterBase):
         # Get the metadata that we stored in the HarvestObject's content field.
         dataset = json.loads(harvest_object.content)
 
-        validate_message = self._validate_dataset(dataset)
+        MAPPING = {
+            "title": "title",
+            "description": "notes",
+            "keyword": "tags",
+            "modified": "extras__modified", # ! revision_timestamp
+            "publisher": "extras__publisher", # !owner_org
+            "contactpoint": "maintainer",
+            "mbox": "maintainer_email",
+            "identifier": "extras__identifier", # !id
+            "accesslevel": "extras__accessLevel",
+
+            "bureaucode": "extras__bureauCode",
+            "programcode": "extras__programCode",
+            "accesslevelcomment": "extras__accessLevelComment",
+            "license": "extras__license", # !license_id 
+            "spatial": "extras__spatial", # Geometry not valid GeoJSON, not indexing
+            "temporal": "extras__temporal",
+
+            "theme": "extras__theme",
+            "datadictionary": "extras__dataDictionary", # !data_dict
+            "dataquality": "extras__dataQuality",
+            "accrualperiodicity":"extras__accrualPeriodicity",
+            "landingpage": "extras__landingPage",
+            "language": "extras__language",
+            "primaryitinvestmentuii": "extras__primaryITInvestmentUII", # !PrimaryITInvestmentUII
+            "references": "extras__references",
+            "issued": "extras__issued",
+            "systemofrecords": "extras__systemOfRecords",
+
+            "accessurl": None,
+            "webservice": None,
+            "format": None,
+            "distribution": None,
+        }
+
+        SKIP = ["accessurl", "webservice", "format", "distribution"] # will go into pkg["resources"]
+
+
+        # convert all mapped keys to lowercase for validation
+        dataset_lower = {}
+        for k,v in dataset.items():
+          if k.lower() in MAPPING.keys():
+            dataset_lower[k.lower()] = v
+          else:
+            dataset_lower[k] = v
+
+        if 'distribution' in dataset:
+          dataset_lower['distribution'] = []
+          for d in dataset['distribution']:
+            d_lower = {}
+            for k,v in d.items():
+              if k.lower() in MAPPING.keys():
+                d_lower[k.lower()] = v
+              else:
+                d_lower[k] = v
+            dataset_lower['distribution'].append(d_lower)
+
+        validate_message = self._validate_dataset(dataset_lower)
         if validate_message:
             self._save_object_error(validate_message, harvest_object, 'Import')
             return None
@@ -226,46 +283,11 @@ class DatasetHarvesterBase(HarvesterBase):
         source_dataset = model.Package.get(harvest_object.source.id)
         if source_dataset.owner_org:
             owner_org = source_dataset.owner_org
-        
+
         # Assemble basic information about the dataset.
-        MAPPING = {
-            "title": "title",
-            "description": "notes",
-            "keyword": "tags",
-            "modified": "extras__modified", # ! revision_timestamp
-            "publisher": "extras__publisher", # !owner_org
-            "contactPoint": "maintainer",
-            "mbox": "maintainer_email",
-            "identifier": "extras__identifier", # !id
-            "accessLevel": "extras__accessLevel",
-
-            "bureauCode": "extras__bureauCode",
-            "programCode": "extras__programCode",
-            "accessLevelComment": "extras__accessLevelComment",
-            #"accessURL": "accessURL",
-            #"webService": "extras__webService", # !res_url
-            #"format": "format",
-            "license": "extras__license", # !license_id 
-            "spatial": "extras__spatial", # Geometry not valid GeoJSON, not indexing
-            "temporal": "extras__temporal",
-
-            "theme": "extras__theme",
-            "dataDictionary": "extras__dataDictionary", # !data_dict
-            "dataQuality": "extras__dataQuality",
-            #"distribution": "distribution",
-            "accrualPeriodicity":"extras__accrualPeriodicity",
-            "landingPage": "extras__landingPage",
-            "language": "extras__language",
-            "primaryITInvestmentUII": "extras__primaryITInvestmentUII", # !PrimaryITInvestmentUII
-            "references": "extras__references",
-            "issued": "extras__issued",
-            "systemOfRecords": "extras__systemOfRecords",
-        }
-
-        SKIP = ["accessURL", "webService", "format", "distribution"] # will go into pkg["resources"]
 
         pkg = {
-            "name": self.make_package_name(dataset["title"], harvest_object.guid, False),
+            "name": self.make_package_name(dataset_lower["title"], harvest_object.guid, False),
             "state": "active", # in case was previously deleted
             "owner_org": owner_org,
             "resources": [],
@@ -296,7 +318,7 @@ class DatasetHarvesterBase(HarvesterBase):
         extras = pkg["extras"]
         unmapped = []
 
-        for key, value in dataset.iteritems():
+        for key, value in dataset_lower.iteritems():
             if key in SKIP:
                 continue
             new_key = MAPPING.get(key)
@@ -316,7 +338,7 @@ class DatasetHarvesterBase(HarvesterBase):
             unmapped.sort()
             del unmapped[100:]
             for key in unmapped:
-                value = dataset.get(key, "")
+                value = dataset_lower.get(key, "")
                 if value is not None: extras.append({"key": key, "value": value})
 
         # Set specific information about the dataset.
