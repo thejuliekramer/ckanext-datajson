@@ -243,7 +243,7 @@ class DatasetHarvesterBase(HarvesterBase):
             "programCode": "extras__programCode",
             "accessLevelComment": "extras__accessLevelComment",
             #"accessURL": "accessURL",
-            "webService": "extras__webService", # !res_url
+            #"webService": "extras__webService", # !res_url
             #"format": "format",
             "license": "extras__license", # !license_id 
             "spatial": "extras__spatial", # Geometry not valid GeoJSON, not indexing

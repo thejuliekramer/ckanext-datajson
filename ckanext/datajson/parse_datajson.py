@@ -11,19 +11,23 @@ def parse_datajson_entry(datajson, package, defaults):
 	distribution = datajson.get("distribution", [])
 	if isinstance(distribution, dict): distribution = [distribution]
 	if not isinstance(distribution, list): distribution = []
-	if not distribution and datajson.get("accessURL", ""):
-		d = {
-			"accessURL": datajson.get("accessURL", ""),
-			"format": datajson.get("format", ""),
-			"mimetype": datajson.get("format", ""),
-		}
-		distribution.append(d)
+
+	if not distribution:
+		for url in ("accessURL", "webService"):
+			if datajson.get(url, "").strip():
+				d = {
+					url: datajson.get(url, ""),
+					"format": datajson.get("format", ""),
+					"mimetype": datajson.get("format", ""),
+				}
+				distribution.append(d)
+
 	datajson["distribution"] = distribution
 
 	for d in datajson.get("distribution", []):
-		if d.get("accessURL", "").strip() != "":
+		if d.get("accessURL", "").strip() != "" or d.get("webService", "").strip() != "":
 			r = {
-				"url": d["accessURL"],
+				"url": d["accessURL"] if d.get("accessURL", "").strip() != "" else d["webService"],
 				"format": d.get("format", ""),
 				"mimetype": d.get("format", ""),
 			}
