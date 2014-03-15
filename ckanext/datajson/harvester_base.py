@@ -342,7 +342,7 @@ class DatasetHarvesterBase(HarvesterBase):
                 if value is not None: extras.append({"key": key, "value": value})
 
         # Set specific information about the dataset.
-        self.set_dataset_info(pkg, dataset, dataset_defaults)
+        self.set_dataset_info(pkg, dataset_lower, dataset_defaults)
     
         # Try to update an existing package with the ID set in harvest_object.guid. If that GUID
         # corresponds with an existing package, get its current metadata.
