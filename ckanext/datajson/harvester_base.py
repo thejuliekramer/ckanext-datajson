@@ -5,6 +5,8 @@ from ckan.model import Session, Package
 from ckan.logic import ValidationError, NotFound, get_action
 from ckan.lib.munge import munge_title_to_name
 from ckan.lib.search.index import PackageSearchIndex
+from ckan.lib.navl.dictization_functions import Invalid
+from ckan.lib.navl.validators import ignore_empty
 
 from ckanext.harvest.model import HarvestJob, HarvestObject, HarvestGatherError, \
                                     HarvestObjectError
@@ -16,6 +18,16 @@ from jsonschema.validators import Draft4Validator
 
 import logging
 log = logging.getLogger("harvester")
+
+VALIDATION_SCHEMA = [
+                        ('', 'Project Open Data (Federal)'),
+                        ('non-federal', 'Project Open Data (Non-Federal)'),
+                    ]
+
+def validate_schema(schema):
+    if schema not in [s[0] for s in VALIDATION_SCHEMA]:
+        raise Invalid('Unknown validation schema: {0}'.format(schema))
+    return schema
 
 class DatasetHarvesterBase(HarvesterBase):
     '''
@@ -88,6 +100,11 @@ class DatasetHarvesterBase(HarvesterBase):
         # list of dicts, each dict a dataset containing an 'identifier' field
         # with a locally unique identifier string and a 'title' field.
         raise Exception("Not implemented")
+
+    def extra_schema(self):
+        return {
+            'validator_schema': [ignore_empty, unicode, validate_schema],
+        }
 
     def gather_stage(self, harvest_job):
         # The gather stage scans a remote resource (like a /data.json file) for
@@ -187,9 +204,13 @@ class DatasetHarvesterBase(HarvesterBase):
         raise Exception("Not implemented.")
 
     # validate dataset against POD schema
-    # use a local copy of http://project-open-data.github.io/schema/1_0_final/single_entry.json
-    def _validate_dataset(self, dataset):
-        json_file = open(os.path.join(os.path.dirname(__file__), 'pod_schema/single_entry.json'))
+    # use a local copy.
+    def _validate_dataset(self, validator_schema, dataset):
+        if validator_schema == 'non-federal':
+            json_file = open(os.path.join(os.path.dirname(__file__), 'pod_schema/non-federal/single_entry.json'))
+        else:
+            json_file = open(os.path.join(os.path.dirname(__file__), 'pod_schema/single_entry.json'))
+
         schema = json.load(json_file)
         errors = Draft4Validator(schema).iter_errors(dataset)
         msg = ";"
@@ -212,6 +233,13 @@ class DatasetHarvesterBase(HarvesterBase):
         # Get default values.
         dataset_defaults = self.load_config(harvest_object.source)["defaults"]
 
+        source_config = json.loads(harvest_object.source.config or '{}')
+        validator_schema = source_config.get('validator_schema')
+        if validator_schema == 'non-federal':
+            lowercase_conversion = False
+        else:
+            lowercase_conversion = True
+
         # Get the metadata that we stored in the HarvestObject's content field.
         dataset = json.loads(harvest_object.content)
 
@@ -221,58 +249,68 @@ class DatasetHarvesterBase(HarvesterBase):
             "keyword": "tags",
             "modified": "extras__modified", # ! revision_timestamp
             "publisher": "extras__publisher", # !owner_org
-            "contactpoint": "maintainer",
+            "contactPoint": "maintainer",
             "mbox": "maintainer_email",
             "identifier": "extras__identifier", # !id
-            "accesslevel": "extras__accessLevel",
+            "accessLevel": "extras__accessLevel",
 
-            "bureaucode": "extras__bureauCode",
-            "programcode": "extras__programCode",
-            "accesslevelcomment": "extras__accessLevelComment",
+            "bureauCode": "extras__bureauCode",
+            "programCode": "extras__programCode",
+            "accessLevelComment": "extras__accessLevelComment",
             "license": "extras__license", # !license_id 
             "spatial": "extras__spatial", # Geometry not valid GeoJSON, not indexing
             "temporal": "extras__temporal",
 
             "theme": "extras__theme",
-            "datadictionary": "extras__dataDictionary", # !data_dict
-            "dataquality": "extras__dataQuality",
-            "accrualperiodicity":"extras__accrualPeriodicity",
-            "landingpage": "extras__landingPage",
+            "dataDictionary": "extras__dataDictionary", # !data_dict
+            "dataQuality": "extras__dataQuality",
+            "accrualPeriodicity":"extras__accrualPeriodicity",
+            "landingPage": "extras__landingPage",
             "language": "extras__language",
-            "primaryitinvestmentuii": "extras__primaryITInvestmentUII", # !PrimaryITInvestmentUII
+            "primaryITInvestmentUII": "extras__primaryITInvestmentUII", # !PrimaryITInvestmentUII
             "references": "extras__references",
             "issued": "extras__issued",
-            "systemofrecords": "extras__systemOfRecords",
+            "systemOfRecords": "extras__systemOfRecords",
 
-            "accessurl": None,
-            "webservice": None,
+            "accessURL": None,
+            "webService": None,
             "format": None,
             "distribution": None,
         }
 
-        SKIP = ["accessurl", "webservice", "format", "distribution"] # will go into pkg["resources"]
+        SKIP = ["accessURL", "webService", "format", "distribution"] # will go into pkg["resources"]
 
+        if lowercase_conversion:
 
-        # convert all mapped keys to lowercase for validation
-        dataset_lower = {}
-        for k,v in dataset.items():
-          if k.lower() in MAPPING.keys():
-            dataset_lower[k.lower()] = v
-          else:
-            dataset_lower[k] = v
+            mapping_processed = {}
+            for k,v in MAPPING.items():
+                mapping_processed[k.lower()] = v
 
-        if 'distribution' in dataset:
-          dataset_lower['distribution'] = []
-          for d in dataset['distribution']:
-            d_lower = {}
-            for k,v in d.items():
-              if k.lower() in MAPPING.keys():
-                d_lower[k.lower()] = v
+            skip_processed = [k.lower() for k in SKIP]
+
+            dataset_processed = {}
+            for k,v in dataset.items():
+              if k.lower() in mapping_processed.keys():
+                dataset_processed[k.lower()] = v
               else:
-                d_lower[k] = v
-            dataset_lower['distribution'].append(d_lower)
+                dataset_processed[k] = v
 
-        validate_message = self._validate_dataset(dataset_lower)
+            if 'distribution' in dataset:
+              dataset_processed['distribution'] = []
+              for d in dataset['distribution']:
+                d_lower = {}
+                for k,v in d.items():
+                  if k.lower() in mapping_processed.keys():
+                    d_lower[k.lower()] = v
+                  else:
+                    d_lower[k] = v
+                dataset_processed['distribution'].append(d_lower)
+        else:
+            dataset_processed = dataset
+            mapping_processed = MAPPING
+            skip_processed = SKIP
+
+        validate_message = self._validate_dataset(validator_schema, dataset_processed)
         if validate_message:
             self._save_object_error(validate_message, harvest_object, 'Import')
             return None
@@ -287,7 +325,7 @@ class DatasetHarvesterBase(HarvesterBase):
         # Assemble basic information about the dataset.
 
         pkg = {
-            "name": self.make_package_name(dataset_lower["title"], harvest_object.guid, False),
+            "name": self.make_package_name(dataset_processed["title"], harvest_object.guid, False),
             "state": "active", # in case was previously deleted
             "owner_org": owner_org,
             "resources": [],
@@ -318,10 +356,10 @@ class DatasetHarvesterBase(HarvesterBase):
         extras = pkg["extras"]
         unmapped = []
 
-        for key, value in dataset_lower.iteritems():
-            if key in SKIP:
+        for key, value in dataset_processed.iteritems():
+            if key in skip_processed:
                 continue
-            new_key = MAPPING.get(key)
+            new_key = mapping_processed.get(key)
             if not new_key:
                 unmapped.append(key)
                 continue
@@ -338,11 +376,11 @@ class DatasetHarvesterBase(HarvesterBase):
             unmapped.sort()
             del unmapped[100:]
             for key in unmapped:
-                value = dataset_lower.get(key, "")
+                value = dataset_processed.get(key, "")
                 if value is not None: extras.append({"key": key, "value": value})
 
         # Set specific information about the dataset.
-        self.set_dataset_info(pkg, dataset_lower, dataset_defaults)
+        self.set_dataset_info(pkg, dataset_processed, dataset_defaults)
     
         # Try to update an existing package with the ID set in harvest_object.guid. If that GUID
         # corresponds with an existing package, get its current metadata.
