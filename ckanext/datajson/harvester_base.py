@@ -15,6 +15,7 @@ from ckanext.harvest.harvesters.base import HarvesterBase
 import uuid, datetime, hashlib, urllib2, json, yaml, json, os
 
 from jsonschema.validators import Draft4Validator
+from jsonschema import FormatChecker
 
 import logging
 log = logging.getLogger("harvester")
@@ -212,7 +213,7 @@ class DatasetHarvesterBase(HarvesterBase):
             json_file = open(os.path.join(os.path.dirname(__file__), 'pod_schema/single_entry.json'))
 
         schema = json.load(json_file)
-        errors = Draft4Validator(schema).iter_errors(dataset)
+        errors = Draft4Validator(schema, format_checker=FormatChecker()).iter_errors(dataset)
         msg = ";"
         count = 0
         for error in sorted(errors, key=str):
