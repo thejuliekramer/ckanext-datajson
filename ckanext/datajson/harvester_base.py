@@ -280,6 +280,8 @@ class DatasetHarvesterBase(HarvesterBase):
         }
 
         SKIP = ["accessURL", "webService", "format", "distribution"] # will go into pkg["resources"]
+        # also skip the processed_how key, it was added to indicate how we processed the dataset.
+        SKIP.append("processed_how");
 
         if lowercase_conversion:
 
@@ -289,7 +291,7 @@ class DatasetHarvesterBase(HarvesterBase):
 
             skip_processed = [k.lower() for k in SKIP]
 
-            dataset_processed = {}
+            dataset_processed = {'processed_how': ['lowercase']}
             for k,v in dataset.items():
               if k.lower() in mapping_processed.keys():
                 dataset_processed[k.lower()] = v
