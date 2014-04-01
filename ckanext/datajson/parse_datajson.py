@@ -3,9 +3,36 @@ from ckan.lib.munge import munge_title_to_name
 import re
 
 def parse_datajson_entry(datajson, package, defaults):
+	# three fields (tag, license, resources) need extra handling.
+	# 1. package["tags"]
 	package["tags"] = [ { "name": munge_title_to_name(t) } for t in
 		package.get("tags", "") if t.strip() != ""]
 
+	# 2. package["license"]
+	licenses = {
+		'Creative Commons Attribution':'cc-by',
+		'Creative Commons Attribution Share-Alike':'cc-by-sa',
+		'Creative Commons CCZero':'cc-zero',
+		'Creative Commons Non-Commercial (Any)':'cc-nc',
+		'GNU Free Documentation License':'gfdl',
+		'License Not Specified':'notspecified',
+		'Open Data Commons Attribution License':'odc-by',
+		'Open Data Commons Open Database License (ODbL)':'odc-odbl',
+		'Open Data Commons Public Domain Dedication and License (PDDL)':'odc-pddl',
+		'Other (Attribution)':'other-at',
+		'Other (Non-Commercial)':'other-nc',
+		'Other (Not Open)':'other-closed',
+		'Other (Open)':'other-open',
+		'Other (Public Domain)':'other-pd',
+		'UK Open Government Licence (OGL)':'uk-ogl',
+	}
+
+	if not datajson.get("license", ""):
+		package["license_id"] = licenses.get("License Not Specified", "");
+	elif licenses.get(datajson.get("license", ""), ""):
+		package["license_id"] = licenses.get(datajson.get("license", ""), "")
+
+	# 3. package["resources"]
 	# if distribution is empty, assemble it with root level accessURL and format.
 	# but firstly it can be an ill-formated dict.
 	distribution = datajson.get("distribution", [])
