@@ -216,15 +216,28 @@ class DatasetHarvesterBase(HarvesterBase):
         errors = Draft4Validator(schema, format_checker=FormatChecker()).iter_errors(dataset)
         msg = ";"
         count = 0
-        for error in sorted(errors, key=str):
-            msg = msg + "####### Error Message ####### " + str(error) + "; "
+        for error in errors:
             count += 1
+            msg = msg + " ### ERROR #" + str(count) + ": " + self._validate_readable_msg(error) + "; "
         msg = msg.strip("; ")
         if msg:
             id = "Identifier: " + dataset.get("identifier", "Unknown")
             title = "Title: " + dataset.get("title", "Unknown")
-            msg = id + "; " + title + "; " + str(count) + " Error(s) Found. " + msg
+            msg = id + "; " + title + "; " + str(count) + " Error(s) Found. " + msg + "."
         return msg
+
+    # make ValidationError readable.
+    def _validate_readable_msg(self, e):
+        msg = e.message.replace("u'", "'")
+        elem = ""
+        try:
+            if e.schema_path[0] == 'properties':
+                elem = e.schema_path[1]
+                elem = "'" + elem + "':" 
+        except:
+            pass
+
+        return elem + msg
 
     def import_stage(self, harvest_object):
         # The import stage actually creates the dataset.
