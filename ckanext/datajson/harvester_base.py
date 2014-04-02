@@ -136,6 +136,7 @@ class DatasetHarvesterBase(HarvesterBase):
             
         object_ids = []
         seen_datasets = set()
+        unique_datasets = set()
         
         filters = self.load_config(harvest_job.source)["filters"]
 
@@ -153,6 +154,9 @@ class DatasetHarvesterBase(HarvesterBase):
             if not matched_filters:
                 continue
 
+            # Some source contains duplicate identifiers. skip all except the first one
+            if dataset['identifier'] in unique_datasets: continue
+            unique_datasets.add(dataset['identifier'])
             
             # Get the package_id of this resource if we've already imported
             # it into our system. Otherwise, assign a brand new GUID to the
