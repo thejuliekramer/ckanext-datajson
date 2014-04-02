@@ -155,7 +155,9 @@ class DatasetHarvesterBase(HarvesterBase):
                 continue
 
             # Some source contains duplicate identifiers. skip all except the first one
-            if dataset['identifier'] in unique_datasets: continue
+            if dataset['identifier'] in unique_datasets:
+                self._save_gather_error("Duplicate entry ignored for identifier: '%s'." % (dataset['identifier']), harvest_job)
+                continue
             unique_datasets.add(dataset['identifier'])
             
             # Get the package_id of this resource if we've already imported
