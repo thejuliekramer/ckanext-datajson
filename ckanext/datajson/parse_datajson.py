@@ -47,7 +47,7 @@ def parse_datajson_entry(datajson, package, defaults):
 
 	if not distribution:
 		for url in (acccessurl_key, webservice_key):
-			if datajson.get(url, "").strip():
+			if datajson.get(url, "") and datajson.get(url, "").strip():
 				d = {
 					url: datajson.get(url, ""),
 					"format": datajson.get("format", ""),
@@ -58,9 +58,9 @@ def parse_datajson_entry(datajson, package, defaults):
 	datajson["distribution"] = distribution
 
 	for d in datajson.get("distribution", []):
-		if d.get(acccessurl_key, "").strip() != "" or d.get(webservice_key, "").strip() != "":
+		if (d.get(acccessurl_key, "") and d.get(acccessurl_key, "").strip() != "") or (d.get(webservice_key, "") and d.get(webservice_key, "").strip() != ""):
 			r = {
-				"url": d[acccessurl_key] if d.get(acccessurl_key, "").strip() != "" else d[webservice_key],
+				"url": d[acccessurl_key] if (d.get(acccessurl_key, "") and d.get(acccessurl_key, "").strip() != "") else d[webservice_key],
 				"format": d.get("format", ""),
 				"mimetype": d.get("format", ""),
 			}

@@ -317,7 +317,7 @@ class DatasetHarvesterBase(HarvesterBase):
               else:
                 dataset_processed[k] = v
 
-            if 'distribution' in dataset:
+            if 'distribution' in dataset and dataset['distribution'] is not None:
               dataset_processed['distribution'] = []
               for d in dataset['distribution']:
                 d_lower = {}
