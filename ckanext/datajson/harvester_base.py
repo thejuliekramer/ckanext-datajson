@@ -196,6 +196,12 @@ class DatasetHarvesterBase(HarvesterBase):
             pkg["name"] = self.make_package_name(pkg["title"], pkg["id"], True) # try to prevent name clash by giving it a "deleted-" name
             log.warn('deleting package %s (%s) because it is no longer in %s' % (pkg["name"], pkg["id"], harvest_job.source.url))
             get_action('package_update')(self.context(), pkg)
+            obj = HarvestObject(
+                guid=pkg_id,
+                job=harvest_job,
+                ) 
+            obj.save()
+            object_ids.append(obj.id)
             
         return object_ids
 
@@ -249,6 +255,9 @@ class DatasetHarvesterBase(HarvesterBase):
         # The import stage actually creates the dataset.
         
         log.debug('In %s import_stage' % repr(self))
+        
+        if(harvest_object.content == None):
+           return True
         
         # Get default values.
         dataset_defaults = self.load_config(harvest_object.source)["defaults"]
