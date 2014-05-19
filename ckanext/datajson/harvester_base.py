@@ -353,12 +353,17 @@ class DatasetHarvesterBase(HarvesterBase):
         if source_dataset.owner_org:
             owner_org = source_dataset.owner_org
 
+
+        source_config = json.loads(harvest_object.source.config or '{}')
+        group_name = source_config.get('default_groups', '')
+
         # Assemble basic information about the dataset.
 
         pkg = {
             "name": self.make_package_name(dataset_processed["title"], harvest_object.guid, False),
             "state": "active", # in case was previously deleted
             "owner_org": owner_org,
+            "groups": [{"name": group_name}],
             "resources": [],
             "extras": [
                 {
