@@ -233,8 +233,8 @@ class DatasetHarvesterBase(HarvesterBase):
             msg = msg + " ### ERROR #" + str(count) + ": " + self._validate_readable_msg(error) + "; "
         msg = msg.strip("; ")
         if msg:
-            id = "Identifier: " + dataset.get("identifier", "Unknown")
-            title = "Title: " + dataset.get("title", "Unknown")
+            id = "Identifier: " + (dataset.get("identifier") if dataset.get("identifier") else "Unknown")
+            title = "Title: " + (dataset.get("title") if dataset.get("title") else "Unknown")
             msg = id + "; " + title + "; " + str(count) + " Error(s) Found. " + msg + "."
         return msg
 
