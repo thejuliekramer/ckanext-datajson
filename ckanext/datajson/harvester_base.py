@@ -386,6 +386,10 @@ class DatasetHarvesterBase(HarvesterBase):
                     "key": "harvest_object_id",
                     "value": harvest_object.id,
                 },
+                {
+                    "key": "harvest_source_title",
+                    "value": harvest_object.source.title,
+                },                
             ]
         }
 
