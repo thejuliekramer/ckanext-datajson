@@ -17,15 +17,18 @@ class DataJsonHarvester(DatasetHarvesterBase):
         }
 
     def load_remote_catalog(self, harvest_job):
+        req = urllib2.Request(harvest_job.source.url)
+        # todo: into config and across harvester
+        req.add_header('User-agent', 'Data.gov/2.0')
         try:
-            datasets = json.load(urllib2.urlopen(harvest_job.source.url))
+            datasets = json.load(urllib2.urlopen(req))
         except:
             # try different encode
             try:
-                datasets = json.load(urllib2.urlopen(harvest_job.source.url), 'cp1252')
+                datasets = json.load(urllib2.urlopen(req), 'cp1252')
             except:
                 # remove BOM
-                datasets = json.loads(lstrip_bom(urllib2.urlopen(harvest_job.source.url).read()))
+                datasets = json.loads(lstrip_bom(urllib2.urlopen(req).read()))
 
         # The first dataset should be for the data.json file itself. Check that
         # it is, and if so rewrite the dataset's title because Socrata exports
