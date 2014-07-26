@@ -22,13 +22,15 @@ class DataJsonHarvester(DatasetHarvesterBase):
         req.add_header('User-agent', 'Data.gov/2.0')
         try:
             datasets = json.load(urllib2.urlopen(req))
-        except:
+        except UnicodeDecodeError:
             # try different encode
             try:
                 datasets = json.load(urllib2.urlopen(req), 'cp1252')
             except:
-                # remove BOM
-                datasets = json.loads(lstrip_bom(urllib2.urlopen(req).read()))
+                datasets = json.load(urllib2.urlopen(req), 'iso-8859-1')
+        except:
+            # remove BOM
+            datasets = json.loads(lstrip_bom(urllib2.urlopen(req).read()))
 
         # The first dataset should be for the data.json file itself. Check that
         # it is, and if so rewrite the dataset's title because Socrata exports
