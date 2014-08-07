@@ -114,7 +114,12 @@ class DatasetHarvesterBase(HarvesterBase):
         log.debug('In %s gather_stage (%s)' % (repr(self), harvest_job.source.url))
 
         # Start gathering.
-        source = self.load_remote_catalog(harvest_job)
+        try:
+            source = self.load_remote_catalog(harvest_job)
+        except ValueError as e:
+            self._save_gather_error("Error loading json content: %s." % (e), harvest_job)
+            return []
+
         if len(source) == 0: return []
 
         # Loop through the packages we've already imported from this source
