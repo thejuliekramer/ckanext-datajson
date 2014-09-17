@@ -365,7 +365,6 @@ class DatasetHarvesterBase(HarvesterBase):
         # Assemble basic information about the dataset.
 
         pkg = {
-            "name": self.make_package_name(dataset_processed["title"], harvest_object.guid, False),
             "state": "active", # in case was previously deleted
             "owner_org": owner_org,
             "groups": [{"name": group_name}],
@@ -443,7 +442,7 @@ class DatasetHarvesterBase(HarvesterBase):
                 for existing_res in existing_pkg.get("resources", []):
                     if res["url"] == existing_res["url"]:
                         res["id"] = existing_res["id"]
-            
+            pkg['groups'] = existing_pkg['groups']
             existing_pkg.update(pkg) # preserve other fields that we're not setting, but clobber extras
             pkg = existing_pkg
             
@@ -451,6 +450,7 @@ class DatasetHarvesterBase(HarvesterBase):
             pkg = get_action('package_update')(self.context(), pkg)
         else:
             # It doesn't exist yet. Create a new one.
+            pkg['name'] = self.make_package_name(dataset_processed["title"], harvest_object.guid, False)
             try:
                 pkg = get_action('package_create')(self.context(), pkg)
                 log.warn('created package %s (%s) from %s' % (pkg["name"], pkg["id"], harvest_object.source.url))
