@@ -423,6 +423,11 @@ class DatasetHarvesterBase(HarvesterBase):
                 value = dataset_processed.get(key, "")
                 if value is not None: extras.append({"key": key, "value": value})
 
+        # if theme is geospatial/Geospatial, we tag it in metadata_type.
+        themes = self.find_extra(pkg, "theme")
+        if themes and ('geospatial' in themes or 'Geospatial' in themes):
+            extras.append({'key':'metadata_type', 'value':'geospatial'})
+
         # Set specific information about the dataset.
         self.set_dataset_info(pkg, dataset_processed, dataset_defaults)
     
