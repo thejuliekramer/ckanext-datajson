@@ -425,7 +425,7 @@ class DatasetHarvesterBase(HarvesterBase):
 
         # if theme is geospatial/Geospatial, we tag it in metadata_type.
         themes = self.find_extra(pkg, "theme")
-        if themes and ('geospatial' in themes or 'Geospatial' in themes):
+        if themes and ('geospatial' in [x.lower() for x in themes]):
             extras.append({'key':'metadata_type', 'value':'geospatial'})
 
         # Set specific information about the dataset.
