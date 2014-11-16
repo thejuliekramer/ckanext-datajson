@@ -299,15 +299,20 @@ class DatasetHarvesterBase(HarvesterBase):
 
     # validate dataset against POD schema
     # use a local copy.
-    def _validate_dataset(self, validator_schema, dataset):
+    def _validate_dataset(self, validator_schema, schema_version, dataset):
         if validator_schema == 'non-federal':
-            json_file = open(os.path.join(os.path.dirname(__file__), 'pod_schema/non-federal/single_entry.json'))
-        else:
-            json_file = open(os.path.join(os.path.dirname(__file__), 'pod_schema/single_entry.json'))
+            file_path = 'pod_schema/non-federal/single_entry.json'
+        elif schema_version == '1.1':
+            file_path = 'pod_schema/federal-v1.1/dataset.json'
+        else: # it means schema_version == '1.0':
+            file_path = 'pod_schema/single_entry.json'
 
-        schema = json.load(json_file)
-        errors = Draft4Validator(schema, format_checker=FormatChecker()).iter_errors(dataset)
+        with open(os.path.join(
+            os.path.dirname(__file__), file_path)) as json_file:
+            schema = json.load(json_file)
+
         msg = ";"
+        errors = Draft4Validator(schema, format_checker=FormatChecker()).iter_errors(dataset)
         count = 0
         for error in errors:
             count += 1
@@ -374,7 +379,10 @@ class DatasetHarvesterBase(HarvesterBase):
 
         source_config = json.loads(harvest_object.source.config or '{}')
         validator_schema = source_config.get('validator_schema')
-        lowercase_conversion = True if (schema_version == '1.0' and validator_schema != 'non-federal') else False
+        if schema_version == '1.0' and validator_schema != 'non-federal':
+            lowercase_conversion = True
+        else:
+            lowercase_conversion = False
 
         MAPPING = {
             "title": "title",
@@ -483,10 +491,11 @@ class DatasetHarvesterBase(HarvesterBase):
             mapping_processed = MAPPING_V1_1
             skip_processed = SKIP_V1_1
 
-        # validate_message = self._validate_dataset(validator_schema, dataset_processed)
-        # if validate_message:
-        #     self._save_object_error(validate_message, harvest_object, 'Import')
-        #     return None
+        validate_message = self._validate_dataset(validator_schema,
+            schema_version, dataset_processed)
+        if validate_message:
+            self._save_object_error(validate_message, harvest_object, 'Import')
+            return None
 
         # We need to get the owner organization (if any) from the harvest
         # source dataset
