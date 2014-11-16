@@ -9,7 +9,7 @@ from ckan.lib.navl.dictization_functions import Invalid
 from ckan.lib.navl.validators import ignore_empty
 
 from ckanext.harvest.model import HarvestJob, HarvestObject, HarvestGatherError, \
-                                    HarvestObjectError
+                                    HarvestObjectError, HarvestObjectExtra
 from ckanext.harvest.harvesters.base import HarvesterBase
 
 import uuid, datetime, hashlib, urllib2, json, yaml, json, os
@@ -115,7 +115,7 @@ class DatasetHarvesterBase(HarvesterBase):
 
         # Start gathering.
         try:
-            source = self.load_remote_catalog(harvest_job)
+            source, schema_version = self.load_remote_catalog(harvest_job)
         except ValueError as e:
             self._save_gather_error("Error loading json content: %s." % (e), harvest_job)
             return []
@@ -189,6 +189,7 @@ class DatasetHarvesterBase(HarvesterBase):
             obj = HarvestObject(
                 guid=pkg_id,
                 job=harvest_job,
+                extras=[HarvestObjectExtra(key='schema_version', value=schema_version)],
                 content=json.dumps(dataset, sort_keys=True)) # use sort_keys to preserve field order so hashes of this string are constant from run to run
             obj.save()
             object_ids.append(obj.id)
@@ -264,19 +265,20 @@ class DatasetHarvesterBase(HarvesterBase):
         if(harvest_object.content == None):
            return True
         
+        dataset = json.loads(harvest_object.content)
+        schema_version = '1.0' # default to '1.0'
+        for extra in harvest_object.extras:
+            if extra.key == 'schema_version':
+                schema_version = extra.value
+                break
+
         # Get default values.
         dataset_defaults = self.load_config(harvest_object.source)["defaults"]
 
         source_config = json.loads(harvest_object.source.config or '{}')
         validator_schema = source_config.get('validator_schema')
-        if validator_schema == 'non-federal':
-            lowercase_conversion = False
-        else:
-            lowercase_conversion = True
-
-        # Get the metadata that we stored in the HarvestObject's content field.
-        dataset = json.loads(harvest_object.content)
-
+        lowercase_conversion = True if (schema_version == '1.0' and validator_schema != 'non-federal') else False
+ 
         MAPPING = {
             "title": "title",
             "description": "notes",
