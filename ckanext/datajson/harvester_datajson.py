@@ -1,4 +1,6 @@
 from ckanext.datajson.harvester_base import DatasetHarvesterBase
+from parse_datajson import parse_datajson_entry
+
 
 import urllib2, json
 
@@ -50,11 +52,16 @@ class DataJsonHarvester(DatasetHarvesterBase):
             schema_version = '1.1'
             datasets = datasets.get('dataset', [])
 
-        return (datasets, schema_version)
+        parent_identifiers = set()
+        for dataset in datasets:
+            parent_identifier = dataset.get('isPartOf')
+            if parent_identifier:
+                parent_identifiers.add(parent_identifier)
+
+        return (datasets, parent_identifiers, schema_version)
         
-    def set_dataset_info(self, pkg, dataset, dataset_defaults):
-        from parse_datajson import parse_datajson_entry
-        parse_datajson_entry(dataset, pkg, dataset_defaults)
+    def set_dataset_info(self, pkg, dataset, dataset_defaults, schema_version):
+        parse_datajson_entry(dataset, pkg, dataset_defaults, schema_version)
 
 # helper function to remove BOM
 def lstrip_bom(str_):

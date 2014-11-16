@@ -2,7 +2,7 @@ from ckan.lib.munge import munge_title_to_name
 
 import re
 
-def parse_datajson_entry(datajson, package, defaults):
+def parse_datajson_entry(datajson, package, defaults, schema_version):
 	# three fields (tag, license, resources) need extra handling.
 	# 1. package["tags"]
 	package["tags"] = [ { "name": munge_title_to_name(t) } for t in
@@ -39,6 +39,7 @@ def parse_datajson_entry(datajson, package, defaults):
 	if isinstance(distribution, dict): distribution = [distribution]
 	if not isinstance(distribution, list): distribution = []
 
+	downloadurl_key = "downloadURL"
 	acccessurl_key = "accessURL"
 	webservice_key = "webService"
 	if datajson.get("processed_how", []) and "lowercase" in datajson.get("processed_how", []):
@@ -58,12 +59,20 @@ def parse_datajson_entry(datajson, package, defaults):
 	datajson["distribution"] = distribution
 
 	for d in datajson.get("distribution", []):
-		if (d.get(acccessurl_key, "") and d.get(acccessurl_key, "").strip() != "") or (d.get(webservice_key, "") and d.get(webservice_key, "").strip() != ""):
-			r = {
-				"url": d[acccessurl_key] if (d.get(acccessurl_key, "") and d.get(acccessurl_key, "").strip() != "") else d[webservice_key],
-				"format": d.get("format", ""),
-				"mimetype": d.get("format", ""),
-			}
+		downloadurl_value = d.get(downloadurl_key, "").strip()
+		acccessurl_value = d.get(acccessurl_key, "").strip()
+		webservice_value = d.get(webservice_key, "").strip()
+
+		which_value = (acccessurl_value or webservice_value) if schema_version == '1.0' else (acccessurl_value or downloadurl_value)
+
+		if which_value:
+			r = {}
+			r['url'] = which_value
+			r['format'] = d.get("format", "")
+			r['mimetype'] = d.get("format", "") if schema_version == '1.0' else d.get("mediaType", "")
+			r['description'] = d.get('description', '')
+			r['name'] = d.get('title', '')
+
 			package["resources"].append(r)
 	
 def extra(package, key, value):
