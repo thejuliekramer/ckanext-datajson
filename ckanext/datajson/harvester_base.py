@@ -139,7 +139,7 @@ class DatasetHarvesterBase(HarvesterBase):
             is_parent = self.find_extra(pkg, "collection_metadata")
             if sid:
                 existing_datasets[sid] = pkg
-            if is_parent:
+            if is_parent and pkg.get("state") == "active":
                 existing_parents[sid] = pkg
 
         # which parents has been demoted to child level?
@@ -543,7 +543,7 @@ class DatasetHarvesterBase(HarvesterBase):
                 {
                     "key": "source_schema_version",
                     "value": schema_version,
-                },                
+                },
             ]
         }
 
