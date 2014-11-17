@@ -48,15 +48,18 @@ class DataJsonHarvester(DatasetHarvesterBase):
         # Either default 1.0, or something higher (so far only v1.1).
         schema_version = '1.0'
         SCHEMA_v1_1 = "https://project-open-data.cio.gov/v1.1/schema"
+        parent_identifiers = set()
         if isinstance(datasets, dict) and datasets.get('conformsTo') == SCHEMA_v1_1:
             schema_version = '1.1'
             datasets = datasets.get('dataset', [])
+            for dataset in datasets:
+                parent_identifier = dataset.get('isPartOf')
+                if parent_identifier:
+                    parent_identifiers.add(parent_identifier)
 
-        parent_identifiers = set()
-        for dataset in datasets:
-            parent_identifier = dataset.get('isPartOf')
-            if parent_identifier:
-                parent_identifiers.add(parent_identifier)
+        # todo: report json error in case of this
+        if not isinstance(datasets, list):
+            datasets = []
 
         return (datasets, parent_identifiers, schema_version)
         
