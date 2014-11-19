@@ -424,7 +424,7 @@ class DatasetHarvesterBase(HarvesterBase):
             "description": "notes",
             "keyword": "tags",
             "modified": "extras__modified", # ! revision_timestamp
-            "publisher": {"name":"extras__publisher"}, # !owner_org
+            "publisher": "extras__publisher", # !owner_org
             "contactPoint": {"fn":"maintainer", "hasEmail":"maintainer_email"},
             "identifier": "extras__identifier", # !id
             "accessLevel": "extras__accessLevel",

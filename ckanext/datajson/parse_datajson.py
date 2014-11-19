@@ -3,7 +3,9 @@ from ckan.lib.munge import munge_title_to_name
 import re
 
 def parse_datajson_entry(datajson, package, defaults, schema_version):
-	# three fields (tag, license, resources) need extra handling.
+	# four fields need extra handling, which are
+	# 1.tag, 2.license, 3.publisher_hierarchy, 4.resources
+
 	# 1. package["tags"]
 	package["tags"] = [ { "name": munge_title_to_name(t) } for t in
 		package.get("tags", "") if t.strip() != ""]
@@ -32,7 +34,23 @@ def parse_datajson_entry(datajson, package, defaults, schema_version):
 	elif licenses.get(datajson.get("license", ""), ""):
 		package["license_id"] = licenses.get(datajson.get("license", ""), "")
 
-	# 3. package["resources"]
+	# 3. extras-publisher and extras-publisher_hierarchy
+	publisher = find_extra(package, "publisher", {})
+	publisher_name = publisher.get("name", "")
+	set_extra(package, "publisher", publisher_name)
+	parent_publisher = publisher.get("subOrganizationOf", {})
+	publisher_hierarchy = []
+	while parent_publisher:
+		parent_name = parent_publisher.get("name", "")
+		parent_publisher = parent_publisher.get("subOrganizationOf", {})
+		publisher_hierarchy.append(parent_name)
+	if publisher_hierarchy:
+		publisher_hierarchy.reverse()
+		publisher_hierarchy.append(publisher_name)
+		publisher_hierarchy = " > ".join(publisher_hierarchy)
+		set_extra(package, "publisher_hierarchy", publisher_hierarchy)
+
+	# 4. package["resources"]
 	# if distribution is empty, assemble it with root level accessURL and format.
 	# but firstly it can be an ill-formated dict.
 	distribution = datajson.get("distribution", [])
@@ -78,6 +96,24 @@ def parse_datajson_entry(datajson, package, defaults, schema_version):
 def extra(package, key, value):
 	if not value: return
 	package.setdefault("extras", []).append({ "key": key, "value": value })
+
+def find_extra(pkg, key, default):
+  for extra in pkg["extras"]:
+    if extra["key"] == key:
+      ret = extra["value"]
+      break
+  else:
+    ret = default
+
+  return ret
+
+def set_extra(pkg, key, value):
+  for extra in pkg["extras"]:
+    if extra["key"] == key:
+      extra["value"] = value
+      break
+  else:
+    pkg["extras"].append({"key":key, "value":value})
 	
 def normalize_format(format, raise_on_unknown=False):
 	if format is None: return
