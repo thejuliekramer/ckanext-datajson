@@ -91,6 +91,13 @@ def parse_datajson_entry(datajson, package, defaults, schema_version):
       r['description'] = d.get('description', '')
       r['name'] = d.get('title', '')
 
+      # after schema 1.1+, we have some extra fields for resource
+      resource_extras = ['conformsTo', 'describedBy', 'describedByType']
+      for resource_extra_key in resource_extras:
+        resource_extra_value = d.get(resource_extra_key)
+        if resource_extra_value:
+          r[resource_extra_key] = resource_extra_value
+
       package["resources"].append(r)
 
 def extra(package, key, value):
