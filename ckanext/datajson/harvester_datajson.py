@@ -1,4 +1,5 @@
 from ckanext.datajson.harvester_base import DatasetHarvesterBase
+from ckan.lib.navl.dictization_functions import Invalid
 from parse_datajson import parse_datajson_entry
 
 
@@ -46,20 +47,24 @@ class DataJsonHarvester(DatasetHarvesterBase):
 
         # Check what version of schema the json is using.
         # Either default 1.0, or something higher (so far only v1.1).
-        schema_version = '1.0'
-        SCHEMA_v1_1 = "https://project-open-data.cio.gov/v1.1/schema"
+        schema_versions = {
+            "https://project-open-data.cio.gov/v1.1/schema": '1.1',
+        }
         parent_identifiers = set()
-        if isinstance(datasets, dict) and datasets.get('conformsTo') == SCHEMA_v1_1:
-            schema_version = '1.1'
+        schema_value = ''
+        if isinstance(datasets, dict):
+            schema_value = datasets.get('conformsTo', '')
+            if schema_value not in schema_versions.keys():
+                raise Invalid('Error reading json schema value.' \
+                    ' The given value is %s.' % ('empty' if schema_value == ''
+                    else schema_value))
             datasets = datasets.get('dataset', [])
             for dataset in datasets:
                 parent_identifier = dataset.get('isPartOf')
                 if parent_identifier:
                     parent_identifiers.add(parent_identifier)
 
-        # todo: report json error in case of this
-        if not isinstance(datasets, list):
-            datasets = []
+        schema_version = schema_versions.get(schema_value, '1.0')
 
         return (datasets, parent_identifiers, schema_version)
         
