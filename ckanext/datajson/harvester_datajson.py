@@ -1,5 +1,4 @@
 from ckanext.datajson.harvester_base import DatasetHarvesterBase
-from ckan.lib.navl.dictization_functions import Invalid
 from parse_datajson import parse_datajson_entry
 
 
@@ -45,28 +44,13 @@ class DataJsonHarvester(DatasetHarvesterBase):
             datasets[0].get("title") == "Project Open Data, /data.json file":
             datasets[0]["title"] = "%s Project Open Data data.json File" % harvest_job.source.title
 
-        # Check what version of schema the json is using.
-        # Either default 1.0, or something higher (so far only v1.1).
-        schema_versions = {
-            "https://project-open-data.cio.gov/v1.1/schema": '1.1',
-        }
-        parent_identifiers = set()
-        schema_value = ''
+        catalog_values = None
         if isinstance(datasets, dict):
-            schema_value = datasets.get('conformsTo', '')
-            if schema_value not in schema_versions.keys():
-                raise Invalid('Error reading json schema value.' \
-                    ' The given value is %s.' % ('empty' if schema_value == ''
-                    else schema_value))
-            datasets = datasets.get('dataset', [])
-            for dataset in datasets:
-                parent_identifier = dataset.get('isPartOf')
-                if parent_identifier:
-                    parent_identifiers.add(parent_identifier)
+            # this is a catalog, not dataset array as in schema 1.0.
+            catalog_values = datasets.copy()
+            datasets = catalog_values.pop("dataset", [])
 
-        schema_version = schema_versions.get(schema_value, '1.0')
-
-        return (datasets, parent_identifiers, schema_version)
+        return (datasets, catalog_values)
         
     def set_dataset_info(self, pkg, dataset, dataset_defaults, schema_version):
         parse_datajson_entry(dataset, pkg, dataset_defaults, schema_version)

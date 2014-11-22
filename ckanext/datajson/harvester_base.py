@@ -115,15 +115,40 @@ class DatasetHarvesterBase(HarvesterBase):
 
         # Start gathering.
         try:
-            source_datasets, parent_identifiers, schema_version = self.load_remote_catalog(harvest_job)
-        except Invalid as e:
-            self._save_gather_error(e.error, harvest_job)
-            return []
+            source_datasets, catalog_values = self.load_remote_catalog(harvest_job)
         except ValueError as e:
             self._save_gather_error("Error loading json content: %s." % (e), harvest_job)
             return []
 
         if len(source_datasets) == 0: return []
+
+        DATAJSON_SCHEMA = {
+            "https://project-open-data.cio.gov/v1.1/schema": '1.1',
+            }
+
+        # schema version is default 1.0, or a valid one (1.1, ...)
+        schema_version = '1.0'
+        parent_identifiers = set()
+        catalog_extras = {}
+        if isinstance(catalog_values, dict):
+            schema_value = catalog_values.get('conformsTo', '')
+            if schema_value not in DATAJSON_SCHEMA.keys():
+                self._save_gather_error('Error reading json schema value.' \
+                    ' The given value is %s.' % ('empty' if schema_value == ''
+                    else schema_value), harvest_job)
+                return []
+            schema_version = DATAJSON_SCHEMA.get(schema_value, '1.0')
+
+            for dataset in source_datasets:
+                parent_identifier = dataset.get('isPartOf')
+                if parent_identifier:
+                    parent_identifiers.add(parent_identifier)
+
+            # get a list of needed catalog values and put into hobj
+            catalog_fields = ['@context', '@id', 'conformsTo', 'describedBy']
+            catalog_extras = dict(('catalog_'+k, v)
+                for (k, v) in catalog_values.iteritems()
+                if k in catalog_fields)
 
         # Loop through the packages we've already imported from this source
         # and go into their extra fields to get their source_identifier,
@@ -246,7 +271,7 @@ class DatasetHarvesterBase(HarvesterBase):
                 # don't look like they've changed.
                 if pkg.get("state") == "active" \
                     and dataset['identifier'] not in existing_parents_demoted \
-                    and self.find_extra(pkg, "source_hash") == self.make_upstream_content_hash(dataset, harvest_job.source):
+                    and self.find_extra(pkg, "source_hash") == self.make_upstream_content_hash(dataset, harvest_job.source, catalog_extras):
                     continue
             else:
                 pkg_id = uuid.uuid4().hex
@@ -263,6 +288,8 @@ class DatasetHarvesterBase(HarvesterBase):
                 parent_pkg_id = existing_parents[dataset.get('isPartOf')]['id']
                 extras.append(HarvestObjectExtra(
                     key='collection_pkg_id', value=parent_pkg_id))
+            for k, v in catalog_extras.iteritems():
+                extras.append(HarvestObjectExtra(key=k, value=v))
 
             obj = HarvestObject(
                 guid=pkg_id,
@@ -352,6 +379,7 @@ class DatasetHarvesterBase(HarvesterBase):
         schema_version = '1.0' # default to '1.0'
         is_collection = False
         parent_pkg_id = ''
+        catalog_extras = {}
         for extra in harvest_object.extras:
             if extra.key == 'schema_version':
                 schema_version = extra.value
@@ -359,6 +387,8 @@ class DatasetHarvesterBase(HarvesterBase):
                 is_collection = True
             if extra.key == 'collection_pkg_id' and extra.value:
                 parent_pkg_id = extra.value
+            if extra.key.startswith('catalog_'):
+                catalog_extras[extra.key] = extra.value
 
         # if this dataset is part of collection, we need to check if
         # parent dataset exist or not. we dont support any hierarchy
@@ -525,7 +555,7 @@ class DatasetHarvesterBase(HarvesterBase):
                 },
                 {
                     "key": "source_hash",
-                    "value": self.make_upstream_content_hash(dataset, harvest_object.source),
+                    "value": self.make_upstream_content_hash(dataset, harvest_object.source, catalog_extras),
                 },
                 {
                     "key": "source_datajson_identifier",
@@ -606,6 +636,9 @@ class DatasetHarvesterBase(HarvesterBase):
                 {'key':'collection_package_id', 'value':parent_pkg_id}
             )
 
+        for k, v in catalog_extras.iteritems():
+            extras.append({'key':k, 'value':v})
+
         # Set specific information about the dataset.
         self.set_dataset_info(pkg, dataset_processed, dataset_defaults, schema_version)
     
@@ -660,9 +693,9 @@ class DatasetHarvesterBase(HarvesterBase):
 
         return True
         
-    def make_upstream_content_hash(self, datasetdict, harvest_source):
-        return hashlib.sha1(
-            json.dumps(datasetdict, sort_keys=True)).hexdigest()
+    def make_upstream_content_hash(self, datasetdict, harvest_source, catalog_extras):
+        return hashlib.sha1(json.dumps(datasetdict, sort_keys=True)
+            + "|" + json.dumps(catalog_extras, sort_keys=True)).hexdigest()
         
     def find_extra(self, pkg, key):
         for extra in pkg["extras"]:
