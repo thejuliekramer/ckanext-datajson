@@ -129,6 +129,7 @@ class DatasetHarvesterBase(HarvesterBase):
         # schema version is default 1.0, or a valid one (1.1, ...)
         schema_version = '1.0'
         parent_identifiers = set()
+        child_identifiers = set()
         catalog_extras = {}
         if isinstance(catalog_values, dict):
             schema_value = catalog_values.get('conformsTo', '')
@@ -143,6 +144,7 @@ class DatasetHarvesterBase(HarvesterBase):
                 parent_identifier = dataset.get('isPartOf')
                 if parent_identifier:
                     parent_identifiers.add(parent_identifier)
+                    child_identifiers.add(dataset.get('identifier'))
 
             # get a list of needed catalog values and put into hobj
             catalog_fields = ['@context', '@id', 'conformsTo', 'describedBy']
@@ -183,6 +185,11 @@ class DatasetHarvesterBase(HarvesterBase):
         # run status: None, or parents_run, or children_run?
         run_status = source_config.get('datajson_collection')
         if parent_identifiers:
+            for parent in parent_identifiers & child_identifiers:
+                self._save_gather_error("Collection identifier '%s' \
+                    cannot be isPartOf another collection." \
+                    % parent, harvest_job)
+
             new_parents = set(identifier for identifier in parent_identifiers \
                 if identifier not in existing_parents.keys())
             if new_parents:
@@ -193,8 +200,11 @@ class DatasetHarvesterBase(HarvesterBase):
                     source.config = json.dumps(source_config)
                     source.save()
                 elif run_status == 'children_run':
-                    # it means new parents are tried and failed
-                    for parent in new_parents:
+                    # it means new parents are tried and failed.
+                    # but skip some which have previously reported with
+                    # parent_identifiers & child_identifiers
+                    for parent in new_parents - \
+                        (parent_identifiers & child_identifiers):
                         self._save_gather_error("Collection identifier '%s' \
                             not found. Records which are part of this \
                             collection will not be harvested." \
