@@ -35,20 +35,21 @@ def parse_datajson_entry(datajson, package, defaults, schema_version):
     package["license_id"] = licenses.get(datajson.get("license", ""), "")
 
   # 3. extras-publisher and extras-publisher_hierarchy
-  publisher = find_extra(package, "publisher", {})
-  publisher_name = publisher.get("name", "")
-  set_extra(package, "publisher", publisher_name)
-  parent_publisher = publisher.get("subOrganizationOf", {})
-  publisher_hierarchy = []
-  while parent_publisher:
-    parent_name = parent_publisher.get("name", "")
-    parent_publisher = parent_publisher.get("subOrganizationOf", {})
-    publisher_hierarchy.append(parent_name)
-  if publisher_hierarchy:
-    publisher_hierarchy.reverse()
-    publisher_hierarchy.append(publisher_name)
-    publisher_hierarchy = " > ".join(publisher_hierarchy)
-    set_extra(package, "publisher_hierarchy", publisher_hierarchy)
+  if schema_version == '1.1':
+    publisher = find_extra(package, "publisher", {})
+    publisher_name = publisher.get("name", "")
+    set_extra(package, "publisher", publisher_name)
+    parent_publisher = publisher.get("subOrganizationOf", {})
+    publisher_hierarchy = []
+    while parent_publisher:
+      parent_name = parent_publisher.get("name", "")
+      parent_publisher = parent_publisher.get("subOrganizationOf", {})
+      publisher_hierarchy.append(parent_name)
+    if publisher_hierarchy:
+      publisher_hierarchy.reverse()
+      publisher_hierarchy.append(publisher_name)
+      publisher_hierarchy = " > ".join(publisher_hierarchy)
+      set_extra(package, "publisher_hierarchy", publisher_hierarchy)
 
   # 4. package["resources"]
   # if distribution is empty, assemble it with root level accessURL and format.
