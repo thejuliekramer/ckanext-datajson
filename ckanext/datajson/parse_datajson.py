@@ -79,10 +79,10 @@ def parse_datajson_entry(datajson, package, defaults, schema_version):
 
   for d in datajson.get("distribution", []):
     downloadurl_value = d.get(downloadurl_key, "").strip()
-    acccessurl_value = d.get(acccessurl_key, "").strip()
+    accessurl_value = d.get(acccessurl_key, "").strip()
     webservice_value = d.get(webservice_key, "").strip()
 
-    which_value = (acccessurl_value or webservice_value) if schema_version == '1.0' else (acccessurl_value or downloadurl_value)
+    which_value = (accessurl_value or webservice_value) if schema_version == '1.0' else (downloadurl_value or accessurl_value)
 
     if which_value:
       r = {}
@@ -98,6 +98,10 @@ def parse_datajson_entry(datajson, package, defaults, schema_version):
         resource_extra_value = d.get(resource_extra_key)
         if resource_extra_value:
           r[resource_extra_key] = resource_extra_value
+
+      # after schema 1.1+, include acccessurl if it is left over
+      if downloadurl_value and accessurl_value:
+        r['accessURL'] = accessurl_value
 
       package["resources"].append(r)
 
