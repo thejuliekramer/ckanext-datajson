@@ -281,7 +281,7 @@ class DatasetHarvesterBase(HarvesterBase):
                 # don't look like they've changed.
                 if pkg.get("state") == "active" \
                     and dataset['identifier'] not in existing_parents_demoted \
-                    and self.find_extra(pkg, "source_hash") == self.make_upstream_content_hash(dataset, harvest_job.source, catalog_extras):
+                    and self.find_extra(pkg, "source_hash") == self.make_upstream_content_hash(dataset, harvest_job.source, catalog_extras, schema_version):
                     continue
             else:
                 pkg_id = uuid.uuid4().hex
@@ -565,7 +565,7 @@ class DatasetHarvesterBase(HarvesterBase):
                 },
                 {
                     "key": "source_hash",
-                    "value": self.make_upstream_content_hash(dataset, harvest_object.source, catalog_extras),
+                    "value": self.make_upstream_content_hash(dataset, harvest_object.source, catalog_extras, schema_version),
                 },
                 {
                     "key": "source_datajson_identifier",
@@ -703,9 +703,16 @@ class DatasetHarvesterBase(HarvesterBase):
 
         return True
         
-    def make_upstream_content_hash(self, datasetdict, harvest_source, catalog_extras):
-        return hashlib.sha1(json.dumps(datasetdict, sort_keys=True)
-            + "|" + json.dumps(catalog_extras, sort_keys=True)).hexdigest()
+    def make_upstream_content_hash(self, datasetdict, harvest_source,
+        catalog_extras, schema_version='1.0'):
+        if schema_version == '1.0':
+            return hashlib.sha1(json.dumps(datasetdict, sort_keys=True)
+                + "|" + harvest_source.config + "|"
+                + self.HARVESTER_VERSION).hexdigest()
+        else:
+            return hashlib.sha1(json.dumps(datasetdict, sort_keys=True)
+                + "|" + json.dumps(catalog_extras,
+                sort_keys=True)).hexdigest()
         
     def find_extra(self, pkg, key):
         for extra in pkg["extras"]:
