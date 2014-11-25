@@ -4,7 +4,8 @@ import re
 
 def parse_datajson_entry(datajson, package, defaults, schema_version):
   # four fields need extra handling, which are
-  # 1.tag, 2.license, 3.publisher_hierarchy, 4.resources
+  # 1.tag, 2.license, 3.maintainer_email, 4.publisher_hierarchy,
+  # 5.resources
 
   # 1. package["tags"]
   package["tags"] = [ { "name": munge_title_to_name(t) } for t in
@@ -34,7 +35,12 @@ def parse_datajson_entry(datajson, package, defaults, schema_version):
   elif licenses.get(datajson.get("license", ""), ""):
     package["license_id"] = licenses.get(datajson.get("license", ""), "")
 
-  # 3. extras-publisher and extras-publisher_hierarchy
+  # 3. package["maintainer_email"]
+  if package.get("maintainer_email"):
+    package["maintainer_email"] = \
+      package.get("maintainer_email").replace("mailto:", "", 1)
+
+  # 4. extras-publisher and extras-publisher_hierarchy
   if schema_version == '1.1':
     publisher = find_extra(package, "publisher", {})
     publisher_name = publisher.get("name", "")
@@ -51,7 +57,7 @@ def parse_datajson_entry(datajson, package, defaults, schema_version):
       publisher_hierarchy = " > ".join(publisher_hierarchy)
       set_extra(package, "publisher_hierarchy", publisher_hierarchy)
 
-  # 4. package["resources"]
+  # 5. package["resources"]
   # if distribution is empty, assemble it with root level accessURL and format.
   # but firstly it can be an ill-formated dict.
   distribution = datajson.get("distribution", [])
