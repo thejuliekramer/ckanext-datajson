@@ -314,7 +314,6 @@ class DatasetHarvesterBase(HarvesterBase):
             if upstreamid in seen_datasets: continue # was just updated
             if pkg.get("state") == "deleted": continue # already deleted
             pkg["state"] = "deleted"
-            pkg["name"] = self.make_package_name(pkg["title"], pkg["id"], True) # try to prevent name clash by giving it a "deleted-" name
             log.warn('deleting package %s (%s) because it is no longer in %s' % (pkg["name"], pkg["id"], harvest_job.source.url))
             get_action('package_update')(self.context(), pkg)
             obj = HarvestObject(
@@ -676,7 +675,7 @@ class DatasetHarvesterBase(HarvesterBase):
             pkg = get_action('package_update')(self.context(), pkg)
         else:
             # It doesn't exist yet. Create a new one.
-            pkg['name'] = self.make_package_name(dataset_processed["title"], harvest_object.guid, False)
+            pkg['name'] = self.make_package_name(dataset_processed["title"], harvest_object.guid)
             try:
                 pkg = get_action('package_create')(self.context(), pkg)
                 log.warn('created package %s (%s) from %s' % (pkg["name"], pkg["id"], harvest_object.source.url))
@@ -720,7 +719,7 @@ class DatasetHarvesterBase(HarvesterBase):
                 return extra["value"]
         return None
 
-    def make_package_name(self, title, exclude_existing_package, for_deletion):
+    def make_package_name(self, title, exclude_existing_package):
         '''
         Creates a URL friendly name from a title
 
@@ -728,7 +727,6 @@ class DatasetHarvesterBase(HarvesterBase):
         '''
 
         name = munge_title_to_name(title).replace('_', '-')
-        if for_deletion: name = "deleted-" + name
         while '--' in name:
             name = name.replace('--', '-')
         name = name[0:90] # max length is 100
