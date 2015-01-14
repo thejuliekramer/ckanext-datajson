@@ -340,11 +340,15 @@ class DatasetHarvesterBase(HarvesterBase):
     # use a local copy.
     def _validate_dataset(self, validator_schema, schema_version, dataset):
         if validator_schema == 'non-federal':
-            file_path = 'pod_schema/non-federal/single_entry.json'
-        elif schema_version == '1.1':
-            file_path = 'pod_schema/federal-v1.1/dataset.json'
-        else: # it means schema_version == '1.0':
-            file_path = 'pod_schema/single_entry.json'
+            if schema_version == '1.1':
+                file_path = 'pod_schema/non-federal-v1.1/dataset-non-federal.json'
+            else:
+                file_path = 'pod_schema/non-federal/single_entry.json'
+        else:
+            if schema_version == '1.1':
+                file_path = 'pod_schema/federal-v1.1/dataset.json'
+            else:
+                file_path = 'pod_schema/single_entry.json'
 
         with open(os.path.join(
             os.path.dirname(__file__), file_path)) as json_file:
