@@ -139,7 +139,7 @@
         {
           "type": "array",
           "items": {
-            "$ref": "distribution.json",
+            "$ref": "#/definitions/distribution",
             "minItems": 1,
             "uniqueItems": true
           }
@@ -263,7 +263,7 @@
       "uniqueItems": true
     },
     "publisher": {
-      "$ref": "organization.json"
+      "$ref": "#/definitions/organization"
     },
     "references": {
       "title": "Related Documents",
@@ -561,7 +561,7 @@
         },
         "subOrganizationOf": {
           "title": "Parent Organization",
-          "$ref": "organization.json"
+          "$ref": "#"
         }
       }
     }
