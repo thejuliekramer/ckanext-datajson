@@ -93,7 +93,7 @@ def parse_datajson_entry(datajson, package, defaults, schema_version):
     if which_value:
       r = {}
       r['url'] = which_value
-      r['format'] = d.get("format", "")
+      r['format'] = d.get("format", "") if schema_version == '1.0' else d.get("mediaType", "")
       r['mimetype'] = d.get("format", "") if schema_version == '1.0' else d.get("mediaType", "")
       r['description'] = d.get('description', '')
       r['name'] = d.get('title', '')
