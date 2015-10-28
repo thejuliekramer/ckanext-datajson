@@ -21,7 +21,10 @@ setup(
 	zip_safe=False,
 	install_requires=[
 		# -*- Extra requirements: -*-
-                "jsonschema"
+                "pyyaml",
+                "lepl",
+                "jsonschema",
+                "rfc3987"
 	],
 	entry_points=\
 	"""
