@@ -20,7 +20,7 @@ from jsonschema import FormatChecker
 from sqlalchemy.exc import IntegrityError
 
 import logging
-log = logging.getLogger("harvester")
+log = logging.getLogger(__name__)
 
 VALIDATION_SCHEMA = [
                         ('', 'Project Open Data (Federal)'),
@@ -169,7 +169,7 @@ class DatasetHarvesterBase(HarvesterBase):
                 continue
             sid = self.find_extra(pkg, "identifier")
             is_parent = self.find_extra(pkg, "collection_metadata")
-            if sid:
+            if sid and pkg.get("state") == "active":
                 existing_datasets[sid] = pkg
             if is_parent and pkg.get("state") == "active":
                 existing_parents[sid] = pkg
@@ -283,15 +283,17 @@ class DatasetHarvesterBase(HarvesterBase):
                 pkg = existing_datasets[dataset["identifier"]]
                 pkg_id = pkg["id"]
                 seen_datasets.add(dataset['identifier'])
-                
+                log.debug('Found existing package. package=%s identifier=%s', pkg_id, dataset['identifier'])
+
                 # We store a hash of the dict associated with this dataset
                 # in the package so we can avoid updating datasets that
                 # don't look like they've changed.
                 if pkg.get("state") == "active" \
-                    and dataset['identifier'] not in existing_parents_demoted \
-                    and dataset['identifier'] not in existing_datasets_promoted \
-                    and self.find_extra(pkg, "source_hash") == self.make_upstream_content_hash(dataset, harvest_job.source, catalog_extras, schema_version):
-                    continue
+                   and dataset['identifier'] not in existing_parents_demoted \
+                   and dataset['identifier'] not in existing_datasets_promoted \
+                   and self.find_extra(pkg, "source_hash") == self.make_upstream_content_hash(dataset, harvest_job.source, catalog_extras, schema_version):
+                        log.debug('Existing package matches source_hash, skipping update. package=%s identifier=%s', pkg_id, dataset['identifier'])
+                        continue
             else:
                 pkg_id = uuid.uuid4().hex
 
@@ -326,10 +328,11 @@ class DatasetHarvesterBase(HarvesterBase):
             log.warn('deleting package %s (%s) because it is no longer in %s' % (pkg["name"], pkg["id"], harvest_job.source.url))
             get_action('package_update')(self.context(), pkg)
             obj = HarvestObject(
-                guid=pkg_id,
+                guid=pkg["id"],
                 package_id=pkg["id"],
                 job=harvest_job,
-                ) 
+                report_status='removed',
+                )
             obj.save()
             object_ids.append(obj.id)
             
@@ -567,7 +570,7 @@ class DatasetHarvesterBase(HarvesterBase):
         # Assemble basic information about the dataset.
 
         pkg = {
-            "state": "active", # in case was previously deleted
+            "state": "active",
             "owner_org": owner_org,
             "groups": [{"name": group_name}],
             "resources": [],
