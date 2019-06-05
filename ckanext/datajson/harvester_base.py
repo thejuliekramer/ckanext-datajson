@@ -396,8 +396,11 @@ class DatasetHarvesterBase(HarvesterBase):
         log.debug('In %s import_stage' % repr(self))
         
         if(harvest_object.content == None):
+           # Dataset should be deleted
+           log.info('import result=no_content harvest_object=%s', harvest_object.id)
            return True
-        
+
+        log.debug('import load extras harvest_object=%s', harvest_object.id)
         dataset = json.loads(harvest_object.content)
         schema_version = '1.0' # default to '1.0'
         is_collection = False
@@ -416,6 +419,7 @@ class DatasetHarvesterBase(HarvesterBase):
         # if this dataset is part of collection, we need to check if
         # parent dataset exist or not. we dont support any hierarchy
         # in this, so the check does not apply to those of is_collection
+        log.debug('import check parent harvest_object=%s', harvest_object.id)
         if parent_pkg_id and not is_collection:
             parent_pkg = None
             try:
@@ -428,6 +432,7 @@ class DatasetHarvesterBase(HarvesterBase):
                     % dataset.get('isPartOf')
                 self._save_object_error(parent_check_message, harvest_object,
                     'Import')
+                log.info('import result=parent_not_found harvest_object=%s', harvest_object.id)
                 return None
 
         # Get default values.
@@ -514,6 +519,7 @@ class DatasetHarvesterBase(HarvesterBase):
         SKIP_V1_1.append("processed_how");
 
         if lowercase_conversion:
+            log.debug('import lowecase conversion harvest_object=%s', harvest_object.id)
 
             mapping_processed = {}
             for k,v in MAPPING.items():
@@ -547,14 +553,17 @@ class DatasetHarvesterBase(HarvesterBase):
             mapping_processed = MAPPING_V1_1
             skip_processed = SKIP_V1_1
 
+        log.debug('import validation harvest_object=%s', harvest_object.id)
         validate_message = self._validate_dataset(validator_schema,
             schema_version, dataset_processed)
         if validate_message:
             self._save_object_error(validate_message, harvest_object, 'Import')
+            log.info('import result=validation_failed harvest_object=%s message=%s', harvest_object.id, validate_message)
             return None
 
         # We need to get the owner organization (if any) from the harvest
         # source dataset
+        log.debug('import set owner_org harvest_object=%s', harvest_object.id)
         owner_org = None
         source_dataset = model.Package.get(harvest_object.source.id)
         if source_dataset.owner_org:
@@ -606,6 +615,7 @@ class DatasetHarvesterBase(HarvesterBase):
         extras = pkg["extras"]
         unmapped = []
 
+        log.debug('import process extras harvest_object=%s', harvest_object.id)
         for key, value in dataset_processed.iteritems():
             if key in skip_processed:
                 continue
@@ -640,6 +650,7 @@ class DatasetHarvesterBase(HarvesterBase):
                     pkg[mini_key] = mini_value
 
         # pick a fix number of unmapped entries and put into extra
+        log.debug('import fix umapped extras harvest_object=%s', harvest_object.id)
         if unmapped:
             unmapped.sort()
             del unmapped[100:]
@@ -648,6 +659,7 @@ class DatasetHarvesterBase(HarvesterBase):
                 if value is not None: extras.append({"key": key, "value": value})
 
         # if theme is geospatial/Geospatial, we tag it in metadata_type.
+        log.debug('import check geospatial harvest_object=%s', harvest_object.id)
         themes = self.find_extra(pkg, "theme")
         if themes and ('geospatial' in [x.lower() for x in themes]):
             extras.append({'key':'metadata_type', 'value':'geospatial'})
@@ -663,6 +675,7 @@ class DatasetHarvesterBase(HarvesterBase):
             extras.append({'key':k, 'value':v})
 
         # Set specific information about the dataset.
+        log.debug('import set_dataset_info harvest_object=%s', harvest_object.id)
         self.set_dataset_info(pkg, dataset_processed, dataset_defaults, schema_version)
     
         # Try to update an existing package with the ID set in harvest_object.guid. If that GUID
@@ -687,6 +700,7 @@ class DatasetHarvesterBase(HarvesterBase):
             
             log.warn('updating package %s (%s) from %s' % (pkg["name"], pkg["id"], harvest_object.source.url))
             pkg = get_action('package_update')(self.context(), pkg)
+            log.info('import result=update harveset_object=%s', harvest_object.id)
         else:
             # It doesn't exist yet. Create a new one.
             pkg['name'] = self.make_package_name(dataset_processed["title"], harvest_object.guid)
@@ -704,12 +718,15 @@ class DatasetHarvesterBase(HarvesterBase):
                 log.error('failed to create package %s from %s' % (pkg["name"], harvest_object.source.url))
                 raise
 
+            log.info('import result=create harveset_object=%s', harvest_object.id)
+
         # Flag the other HarvestObjects linking to this package as not current anymore
         for ob in model.Session.query(HarvestObject).filter_by(package_id=pkg["id"]):
             ob.current = False
             ob.save()
 
         # Flag this HarvestObject as the current harvest object
+        log.debug('import set as current harvest_object=%s', harvest_object.id)
         harvest_object.package_id = pkg['id']
         harvest_object.current = True
         harvest_object.save()
@@ -724,6 +741,7 @@ class DatasetHarvesterBase(HarvesterBase):
         # !!! list datasets by harvest source /harvest/{source_id}
         # PackageSearchIndex().index_package(pkg)
 
+        log.debug('import complete harvest_object=%s', harvest_object.id)
         return True
         
     def make_upstream_content_hash(self, datasetdict, harvest_source,
